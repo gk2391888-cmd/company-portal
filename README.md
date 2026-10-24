@@ -65,3 +65,12 @@ Never share passwords or grant founder privileges casually.
 - The internal CRM is not a public enquiry form.
 - Test access rules with separate founder, manager, employee and
   unauthorized accounts before using real company/client data.
+
+
+## Founder analytics and staff onboarding
+
+The dashboard reads analytics summaries from `productAnalytics/{appId}` and events from `productActivity/{eventId}`. Expected app IDs are `ff-league` and `study-shelf`. Aggregate fields include `totalUsers` (number), `activeUsers` (number), and `updatedAt` (timestamp).
+
+**Real counts are not connected just by adding the dashboard UI.** FF League uses its own Firebase Realtime Database and Study Shelf uses a separate Firebase project. Use a trusted server-side connector to read aggregate data and write summaries/events. Do not expose service-account credentials in GitHub Pages, and do not copy wallet balances, auth tokens, or private profile data into this portal.
+
+For staff onboarding, each staff member must first sign in to the portal with Google. The founder then enters that person's exact Firebase Auth UID in Staff Management. The portal only offers employee/manager roles; the Firestore rules must be published from `firestore.rules` in Firebase Console.
