@@ -93,15 +93,26 @@ async function loadCollection(name, max = 100) {
   }
 }
 
+async function loadOptionalCollection(name, max = 100) {
+  try { return await loadCollection(name, max); }
+  catch (error) {
+    if (error.code === "permission-denied" || error.code === "firestore/permission-denied") {
+      console.warn("Optional analytics collection is not permitted yet:", name);
+      return [];
+    }
+    throw error;
+  }
+}
+
 async function loadData() {
-  const [members, projects, tasks, leads, activities] = await Promise.all([
+  const [members, projects, tasks, leads, activities, productAnalytics, productActivity] = await Promise.all([
     loadCollection("members"),
     loadCollection("projects"),
     loadCollection("tasks"),
     loadCollection("leads"),
     loadCollection("activities", 30),
-    loadCollection("productAnalytics", 20),
-    loadCollection("productActivity", 50)
+    loadOptionalCollection("productAnalytics", 20),
+    loadOptionalCollection("productActivity", 50)
   ]);
   cache = { members, projects, tasks, leads, activities, productAnalytics, productActivity };
 }
