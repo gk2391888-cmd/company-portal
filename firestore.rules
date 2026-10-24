@@ -1,0 +1,85 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function memberPath(uid) {
+      return /databases/$(database)/documents/members/$(uid);
+    }
+
+    function activeMember() {
+      return signedIn()
+        && exists(memberPath(request.auth.uid))
+        && get(memberPath(request.auth.uid)).data.active == true;
+    }
+
+    function manager() {
+      return activeMember()
+        && get(memberPath(request.auth.uid)).data.role in ['founder', 'manager'];
+    }
+
+    function founder() {
+      return activeMember()
+        && get(memberPath(request.auth.uid)).data.role == 'founder';
+    }
+
+    match /members/{memberId} {
+      allow read: if activeMember();
+      allow create: if founder()
+        && request.resource.data.uid == memberId
+        && request.resource.data.role in ['employee', 'manager']
+        && request.resource.data.active == true
+        && request.resource.data.name is string
+        && request.resource.data.email is string;
+      allow update: if manager()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['name', 'department', 'jobTitle']);
+      allow delete: if false;
+    }
+
+    match /projects/{projectId} {
+      allow read: if activeMember();
+      allow create, update, delete: if manager();
+    }
+
+    match /tasks/{taskId} {
+      allow read: if activeMember();
+      allow create, delete: if manager();
+      allow update: if manager()
+        || (activeMember()
+          && resource.data.assigneeUid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status']));
+    }
+
+    match /leads/{leadId} {
+      allow read: if activeMember();
+      allow create, update, delete: if manager();
+    }
+
+    match /activities/{activityId} {
+      allow read: if activeMember();
+      allow create: if activeMember()
+        && request.resource.data.actorUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /productAnalytics/{appId} {
+      allow read: if activeMember();
+      allow write: if false;
+    }
+
+    match /productActivity/{eventId} {
+      allow read: if activeMember();
+      allow write: if false;
+    }
+
+    match /users/{userId}/files/{fileId} {
+      allow read, create, update, delete: if signedIn()
+        && request.auth.uid == userId;
+    }
+  }
+}
