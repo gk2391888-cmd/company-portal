@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080b1a">
+  <title>THE TECH HUB | Company Portal</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="brand-logo">T<span>H</span></div>
+      <p class="eyebrow">PRIVATE WORKSPACE</p>
+      <h1>THE TECH HUB</h1>
+      <p class="muted">One workspace for your team, projects and clients.</p>
+      <button id="loginBtn" class="primary-btn">Continue with Google</button>
+      <p id="loginMsg" class="message"></p>
+      <p class="tiny">Authorized team members only.</p>
+    </div>
+  </div>
+
+  <div id="appScreen" class="app-shell hidden">
+    <aside id="sidebar" class="sidebar">
+      <div class="brand">
+        <div class="brand-logo small-logo">T<span>H</span></div>
+        <div>
+          <strong>THE TECH HUB</strong>
+          <small>Company Portal</small>
+        </div>
+      </div>
+
+      <div class="workspace-label">WORKSPACE</div>
+      <nav class="nav">
+        <button class="nav-link active" data-page="overview">▦ <span>Overview</span></button>
+        <button class="nav-link" data-page="employees">♙ <span>Employees</span></button>
+        <button class="nav-link" data-page="projects">▤ <span>Projects</span></button>
+        <button class="nav-link" data-page="tasks">✓ <span>Tasks</span></button>
+        <button class="nav-link" data-page="clients">◎ <span>Client CRM</span></button>
+        <button class="nav-link" data-page="activity">◷ <span>Activity</span></button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="secure-note">🔒 Private team workspace</div>
+        <a href="https://gk2391888-cmd.github.io/thetechhub/" target="_blank" rel="noopener noreferrer">Public website ↗</a>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <button id="menuBtn" class="icon-btn mobile-only" aria-label="Open menu">☰</button>
+        <div>
+          <div class="eyebrow">THE TECH HUB / INTERNAL</div>
+          <h2 id="pageTitle">Overview</h2>
+        </div>
+        <div class="profile">
+          <img id="userPhoto" alt="" src="">
+          <div class="profile-copy">
+            <strong id="userName">Team member</strong>
+            <small id="userRole">Loading role...</small>
+          </div>
+          <button id="logoutBtn" class="secondary-btn">Sign out</button>
+        </div>
+      </header>
+
+      <section id="pageContent" class="page-content">
+        <div class="loading">Loading your workspace…</div>
+      </section>
+      <footer class="footer">A Product by <a href="https://gk2391888-cmd.github.io/thetechhub/" target="_blank" rel="noopener noreferrer">THE TECH HUB</a> · Building Useful Products from Bihar for Bharat</footer>
+    </main>
+  </div>
+
+  <div id="modalRoot"></div>
+  <div id="toast" class="toast" role="status"></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
