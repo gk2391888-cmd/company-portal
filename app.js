@@ -56,6 +56,10 @@ function failText(error) {
   return messages[code] || error?.message || "Kuch galat ho gaya.";
 }
 
+function isFounder() {
+  return currentMember?.role === "founder";
+}
+
 function isManager() {
   return ["founder", "manager"].includes(currentMember?.role);
 }
@@ -161,7 +165,7 @@ function renderOverview() {
 function renderEmployees() {
   const rows = cache.members.filter(m => m.active !== false);
   return `<div class="page-heading"><div><h3>Team directory</h3><p>Internal team member details.</p></div>
-    ${isManager() ? '<button class="primary-btn" data-action="invite-member">+ Add member</button>' : ""}</div>
+    ${isFounder() ? '<button class="primary-btn" data-action="invite-member">+ Add staff</button>' : ""}</div>
     <div class="card-grid">${rows.map(m => `<div class="item-card">
       <div class="panel-head"><span class="badge">${esc(m.role || "employee")}</span>${statusBadge("active")}</div>
       <h3>${esc(m.name || "Team member")}</h3><p>${esc(m.email || "")}</p>
@@ -295,7 +299,7 @@ async function handleAction(action, id) {
       });
   }
 
-  if (action === "invite-member" && isManager()) {
+  if (action === "invite-member" && isFounder()) {
     showModal("Register team member",
       field("uid", "Firebase Auth UID", "text", true) +
       field("name", "Full name", "text", true) +
@@ -303,9 +307,18 @@ async function handleAction(action, id) {
       field("department", "Department") +
       selectField("role", "Role", ["employee", "manager"], "employee"),
       async d => {
-        // Membership/roles must only be assigned by the founder in Firebase Console.
-        // This UI deliberately does not write the members collection.
-        throw new Error("Role-safe setup: create members/{UID} in Firebase Console. See README.md.");
+        const uid = d.uid.trim();
+        const email = d.email.trim().toLowerCase();
+        const name = d.name.trim();
+        if (!uid || !email || !name) throw new Error("UID, name and email are required.");
+        const existing = await getDoc(doc(db, "members", uid));
+        if (existing.exists()) throw new Error("This UID is already registered as a team member.");
+        await setDoc(doc(db, "members", uid), {
+          uid, name, email, department: d.department.trim(),
+          role: d.role === "manager" ? "manager" : "employee",
+          active: true, createdAt: serverTimestamp(), createdBy: currentUser.uid
+        });
+        await logActivity("Staff member added", name + " (" + d.role + ")");
       });
   }
 
