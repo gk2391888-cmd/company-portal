@@ -25,12 +25,12 @@ const modalRoot = $("modalRoot");
 let currentUser = null;
 let currentMember = null;
 let currentPage = "overview";
-let cache = { members: [], projects: [], tasks: [], leads: [], activities: [] };
+let cache = { members: [], projects: [], tasks: [], leads: [], activities: [], productAnalytics: [], productActivity: [] };
 let toastTimer;
 
 const titles = {
-  overview: "Overview", employees: "Employees", projects: "Projects",
-  tasks: "Tasks", clients: "Client CRM", activity: "Activity"
+  overview: "Founder Overview", employees: "Staff Management", projects: "Projects",
+  tasks: "Tasks", clients: "Client CRM", activity: "Activity Log", apps: "App Analytics"
 };
 
 const esc = (value = "") => String(value).replace(/[&<>"']/g, char => ({
@@ -99,9 +99,11 @@ async function loadData() {
     loadCollection("projects"),
     loadCollection("tasks"),
     loadCollection("leads"),
-    loadCollection("activities", 30)
+    loadCollection("activities", 30),
+    loadCollection("productAnalytics", 20),
+    loadCollection("productActivity", 50)
   ]);
-  cache = { members, projects, tasks, leads, activities };
+  cache = { members, projects, tasks, leads, activities, productAnalytics, productActivity };
 }
 
 async function logActivity(action, details) {
@@ -145,6 +147,10 @@ function renderOverview() {
   const myTasks = cache.tasks.filter(t => t.assigneeUid === currentUser.uid);
   const openTasks = cache.tasks.filter(t => t.status !== "completed");
   const activeProjects = cache.projects.filter(p => p.status !== "completed");
+  const metric = id => {
+    const row = cache.productAnalytics.find(item => item.id === id);
+    return Number.isFinite(row?.totalUsers) ? row.totalUsers.toLocaleString("en-IN") : "Not connected";
+  };
   return `
     <div class="page-heading"><div><h3>Welcome, ${esc(currentMember.name || currentUser.displayName || "Team member")}</h3>
     <p>Your company workspace at a glance.</p></div><button class="primary-btn" data-action="new-task">+ New task</button></div>
@@ -153,6 +159,8 @@ function renderOverview() {
       ${stat("Active projects", activeProjects.length, "Projects in progress")}
       ${stat("Open tasks", openTasks.length, "Tasks not completed")}
       ${stat("My tasks", myTasks.length, "Assigned to you")}
+      ${stat("FF League users", metric("ff-league"), "Synced from FF League Firebase")}
+      ${stat("Study Shelf users", metric("study-shelf"), "Synced from Study Shelf Firebase")}
     </div>
     <div class="content-grid">
       <div class="panel"><h3>Recent tasks</h3>
@@ -206,8 +214,40 @@ function renderClients() {
 }
 
 function renderActivity() {
-  return `<div class="page-heading"><div><h3>Company activity</h3><p>Recent updates recorded in the portal.</p></div></div>
-    <div class="panel">${activityRows(cache.activities)}</div>`;
+  const productEvents = cache.productActivity.map(item => ({
+    ...item,
+    action: item.action || "Product activity",
+    details: "[" + (item.appName || item.app || "Product") + "] " + (item.details || ""),
+    actorName: item.actorName || "App user"
+  }));
+  const timeOf = value => value?.toDate ? value.toDate().getTime() : new Date(value || 0).getTime();
+  const events = [...cache.activities, ...productEvents].sort((a,b) => timeOf(b.createdAt)-timeOf(a.createdAt));
+  return `<div class="page-heading"><div><h3>Company activity</h3><p>Recent portal and connected product events.</p></div></div>
+    <div class="panel">${activityRows(events.slice(0,50))}</div>`;
+}
+
+function renderApps() {
+  const apps = [
+    { id: "ff-league", name: "FF League", url: "https://gk2391888-cmd.github.io/ff-leauge-final/" },
+    { id: "study-shelf", name: "Study Shelf / IITM SOLUTIONS", url: "https://gk2391888-cmd.github.io/study-shelf/" }
+  ];
+  return `<div class="page-heading"><div><h3>App analytics</h3><p>Counts are displayed only after a trusted backend syncs real data.</p></div></div>
+    <div class="card-grid">${apps.map(app => {
+      const data = cache.productAnalytics.find(item => item.id === app.id);
+      const count = Number.isFinite(data?.totalUsers) ? data.totalUsers.toLocaleString("en-IN") : "Not connected";
+      const active = Number.isFinite(data?.activeUsers) ? data.activeUsers.toLocaleString("en-IN") : "—";
+      return `<div class="item-card">
+        <span class="badge ${data ? "green" : "yellow"}">${data ? "Connected" : "Setup required"}</span>
+        <h3>${esc(app.name)}</h3>
+        <p>Total users: <strong>${esc(count)}</strong></p>
+        <p>Active users: <strong>${esc(active)}</strong></p>
+        <p>Last sync: ${esc(data?.updatedAt ? dateText(data.updatedAt) : "Not available")}</p>
+        <div class="item-meta"><a class="secondary-btn" href="${app.url}" target="_blank" rel="noopener noreferrer">Open app ↗</a></div>
+      </div>`;
+    }).join("")}</div>
+    <div class="panel" style="margin-top:18px"><h3>Analytics connection status</h3>
+      <p class="muted">FF League uses its own Realtime Database and Study Shelf uses a separate Firebase project. This portal cannot safely enumerate either project's Authentication users from browser code. A trusted server-side connector must publish aggregate documents to <code>productAnalytics</code> and approved activity events to <code>productActivity</code>. Wallet balances, tokens and private profile data should never be copied here.</p>
+    </div>`;
 }
 
 function renderPage() {
@@ -216,7 +256,7 @@ function renderPage() {
     btn.classList.toggle("active", btn.dataset.page === currentPage));
   const pages = {
     overview: renderOverview, employees: renderEmployees, projects: renderProjects,
-    tasks: renderTasks, clients: renderClients, activity: renderActivity
+    tasks: renderTasks, clients: renderClients, activity: renderActivity, apps: renderApps
   };
   content.innerHTML = (pages[currentPage] || renderOverview)();
 }
